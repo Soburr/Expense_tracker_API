@@ -20,22 +20,16 @@ class AuthController extends Controller
             'password' => 'required|string'
          ]);
 
-        //  $date = Carbon::now();
-        //  $joinDate = $date->toDateTimeString();
 
-         $user = new User();
+         $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password)
+         ]);
 
-         $user->name = $request->name;
-         $user->email = $request->email;
-         $user->password = Hash::make($request->password);
-         $user->save();
+         $token = $user->createToken('API Token')->accessToken;
 
-         $data = [];
-         $data['response_code'] = '200';
-         $data['status'] = 'success';
-         $data['message'] = 'successful registration';
-
-         return response()->json($data);
+         return response()->json(['token' => $token], 201);
     }
 
     public function login(Request $request) {
@@ -44,41 +38,12 @@ class AuthController extends Controller
             'password' => 'required|string'
          ]);
 
-        try {
-            $email = $request->email;
-            $password = $request->password;
+        if (auth()->attempt($request->only('email', 'password'))) {
+           $token = auth()->user()->createToken('API Token')->accessToken;
 
-            if (Auth::attempt(['email' => $email, 'password' => $password])) {
-              $user = Auth::user();
-              $accessToken = $user->createToken($user->email)->accessToken;
-
-              $data = [];
-              $data['response_code'] = '200';
-              $data['status'] = 'success';
-              $data['message'] = 'successful Login';
-              $data['user_info'] = $user;
-              $data['token'] = $accessToken;
-
-              return response()->json($data);
-
-            } else {
-              $data = [];
-              $data['response_code'] = '401';
-              $data['status'] = 'error';
-              $data['message'] = 'Unauthorized';
-
-              return response()->json($data);
-            }
-        } catch(Exception $e) {
-              Log::info($e);
-
-              $data = [];
-              $data['response_code'] = '401';
-              $data['status'] = 'error';
-              $data['message'] = 'Failed Login';
-
-              return response()->json($data);
+           return response()->json(['token' => $token], 200);
         }
+           return response()->json(['error' => 'Unauthorized'], 401);
     }
 
     public function userInfo() {
