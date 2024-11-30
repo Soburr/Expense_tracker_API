@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,5 +17,9 @@ Route::group(['namespace' => 'App\Http\Controllers'], function() {
 
     Route::controller(AuthController::class)->group(function () {
       Route::get('get-user', 'userInfo')->middleware('auth.api')->name('get-user');
+    });
+
+    Route::middleware('auth:api')->group(function() {
+       Route::apiResource('/transactions', TransactionController::class);
     });
 });

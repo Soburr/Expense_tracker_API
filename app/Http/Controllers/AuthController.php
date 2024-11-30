@@ -3,72 +3,72 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     public function register(Request $request) {
-         $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|string|email|unique:users',
-            'password' => 'required|string'
+         $validator = Validator::make($request->all(), [
+            "name" => "required",
+            "email" => "required|email",
+            "password" => "required",
+            "confirm_password" => "required|same:password"
          ]);
 
+         if ($validator->fails()) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Validation  Failed",
+                "data" => $validator->errors()->all()
+            ]);
+         }
 
          $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password)
+            "name" => $request->name,
+            "email" => $request->email,
+            "password" => bcrypt($request->password),
          ]);
 
-         $token = $user->createToken('API Token')->accessToken;
+         $response = [];
+         $response['token'] = $user->createToken("MyApp")->accessToken;
+         $response['user'] = $user->name;
+         $response['email'] = $user->email;
 
-         return response()->json(['token' => $token], 201);
+            return response()->json([
+              "status" => 1,
+              "message" => "Registration successful",
+              "data" => $response
+           ]);
     }
 
     public function login(Request $request) {
-        $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string'
-         ]);
 
-        if (auth()->attempt($request->only('email', 'password'))) {
-           $token = auth()->user()->createToken('API Token')->accessToken;
+       if(Auth::attempt(["email" => $request->email, "password" => $request->password])) {
+            $user = Auth::user();
 
-           return response()->json(['token' => $token], 200);
-        }
-           return response()->json(['error' => 'Unauthorized'], 401);
+            $response = [];
+            $response['token'] = $user->createToken("MyApp")->accessToken;
+            $response['user'] = $user->name;
+            $response['email'] = $user->email;
+
+            return response()->json([
+              "status" => 1,
+              "message" => "User Logged-in",
+              "data" => $response
+           ]);
+       }
+
+            return response()->json([
+               "status" => 0,
+               "message" => "Invalid Credentials",
+               "data" => null
+            ]);
+
     }
 
-    public function userInfo() {
-        try {
-            $userDataList = User::latest()->paginate(10);
-            $data = [];
-            $data['response_code'] = '200';
-            $data['status'] = 'success';
-            $data['message'] = 'Users List';
-            $data['data_user_list'] = $userDataList;
-
-            return response()->json($data);
-        } catch(Exception $e) {
-            Log::info($e);
-
-            $data = [];
-            $data['response_code'] = '401';
-            $data['status'] = 'error';
-            $data['message'] = 'Failed Login';
-
-            return response()->json($data);
-        }
-    }
 }
-
 
 // Client ID ........ 9d972e39-a280-4272-8972-a51eb9c6529f
 //   Client secret ...... 4LzcejwybQrG70AAvlRa4E2FwIFQ6uvfjfIPRn8m
