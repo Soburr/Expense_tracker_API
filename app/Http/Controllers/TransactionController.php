@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TransactionResource;
 use App\Models\Transaction;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,9 +14,7 @@ class TransactionController extends Controller
 
     public function index()
     {
-        $transactions = Transaction::all();
-
-        return response()->json($transactions, 200);
+        return TransactionResource::collection(Transaction::all());
     }
 
     /**
@@ -48,11 +46,12 @@ class TransactionController extends Controller
             "date" => $request->date
          ]);
 
-            return response()->json([
-              "status" => 1,
-              "message" => "Transaction Created",
-              "data" => $transaction
-           ]);
+         return new TransactionResource($transaction);
+        //     return response()->json([
+        //       "status" => 1,
+        //       "message" => "Transaction Created",
+        //       "data" => $transaction
+        //    ]);
     }
 
     /**
@@ -60,19 +59,7 @@ class TransactionController extends Controller
      */
     public function show(Transaction $transaction)
     {
-        return response()->json([
-            'data' => [
-                'id' => $transaction->id,
-                'type' => 'Transactions',
-                    'attributes' => [
-                        'type' => $transaction->type,
-                        'amount' => $transaction->amount,
-                        'description' => $transaction->description,
-                        'category' => $transaction->category,
-                        'date' => $transaction->date
-                    ]
-            ]
-        ]);
+        return new TransactionResource($transaction);
     }
 
     /**
@@ -122,5 +109,29 @@ class TransactionController extends Controller
             "message" => "Transaction Deleted",
             "data" => $transaction
          ]);
+    }
+
+    public function monthlySummary ($month) {
+
+        //Ensure month is within range of 1-12
+       $month = (int) $month;
+       if($month < 1 || $month > 12) {
+          return response()->json(['error' => 'Invalid month'], 400);
+       }
+
+       //Filter transaction for the given month
+       $transactions = auth()->user()->transactions()
+                      ->whereRaw('MONTH(date) = ?', [$month]) // Extract month for the date
+                      ->get()
+                      ->groupBy('type');
+
+        // Summarize income and expense
+       $income = $transactions->get('income', collect()->sum('amount'));
+       $expense = $transactions->get('income', collect()->sum('amount'));
+
+       return response()->json([
+          'income' => $income,
+          'expenses' => $expense
+       ], 200);
     }
 }
