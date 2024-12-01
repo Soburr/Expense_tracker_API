@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
+use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -9,16 +11,12 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class TransactionFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = Transaction::class;
+
     public function definition(): array
     {
         return [
-            'id' => $this->faker->numberBetween(1, 10),
-            // 'user_id' => $this->faker->numberBetween(1, 10),
+            'user_id' => User::factory(),
             'type' => $this->faker->randomElement(['income', 'expense']),
             'amount' => $this->faker->randomFloat(2, 0, 1000),
             'description' => $this->faker->sentence(),

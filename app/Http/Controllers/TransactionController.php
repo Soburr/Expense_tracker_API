@@ -6,14 +6,17 @@ use App\Models\Transaction;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
 class TransactionController extends Controller
 {
 
     public function index()
     {
-        $transaction = Transaction::all();
+        $transactions = Transaction::all();
 
-        return response()->json($transaction, 201);
+        return response()->json($transactions, 200);
     }
 
     /**
@@ -21,16 +24,35 @@ class TransactionController extends Controller
      */
     public function store(StoreTransactionRequest $request)
     {
-        $request->validate([
-            'type' => 'required|in:income,expense',
-            'amount' => 'required|numeric',
-            'description' => 'nullable|string',
-            'category' => 'required|string',
-            'date' => 'required|string'
-        ]);
+        $validator = Validator::make($request->all(), [
+            "user_id" => "required",
+            "type" => "required|in:income,expense",
+            "amount" => "required|decimal:0,9",
+            "description" => "required",
+            "date" => "required"
+         ]);
 
-        $transaction = auth()->user()->transactions()->create($request->all());
-        return response()->json($transaction, 201);
+         if ($validator->fails()) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Error!",
+                "data" => $validator->errors()->all()
+            ]);
+         }
+
+         $transaction = Transaction::create([
+            "user_id" => $request->user_id,
+            "type" => $request->type,
+            "amount" => $request->amount,
+            "description" => $request->description,
+            "date" => $request->date
+         ]);
+
+            return response()->json([
+              "status" => 1,
+              "message" => "Transaction Created",
+              "data" => $transaction
+           ]);
     }
 
     /**
@@ -56,16 +78,49 @@ class TransactionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateTransactionRequest $request, Transaction $transaction)
+    public function update(UpdateTransactionRequest $request, $id)
     {
-        //
+        $validator = Validator::make($request->all(), [
+            "type" => "required|in:income,expense",
+            "amount" => "required|decimal:0,9",
+            "description" => "required",
+            "date" => "required"
+         ]);
+
+         if ($validator->fails()) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Error!",
+                "data" => $validator->errors()->all()
+            ]);
+         }
+
+         $transaction = Transaction::find($id);
+         $transaction->type = $request->type;
+         $transaction->amount = $request->amount;
+         $transaction->description = $request->description;
+         $transaction->date = $request->date;
+         $transaction->save();
+
+         return response()->json([
+            "status" => 1,
+            "message" => "Transaction Updated",
+            "data" => $transaction
+         ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Transaction $transaction)
+    public function destroy(Request $request, $id)
     {
-        //
+        $transaction = Transaction::find($id);
+        $transaction->delete();
+
+        return response()->json([
+            "status" => 1,
+            "message" => "Transaction Deleted",
+            "data" => $transaction
+         ]);
     }
 }

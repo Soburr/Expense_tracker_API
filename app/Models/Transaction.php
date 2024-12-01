@@ -10,8 +10,8 @@ class Transaction extends Model
     /** @use HasFactory<\Database\Factories\TransactionFactory> */
     use HasFactory;
 
-    protected $guarded = [
-        'id',
+    protected $fillable = [
+        'user_id', 'type', 'amount', 'description', 'date'
     ];
 
     public function user() {
