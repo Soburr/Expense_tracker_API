@@ -15,7 +15,7 @@ Route::group(['namespace' => 'App\Http\Controllers'], function() {
       Route::post('login', 'login')->name('login');
     });
 
-    Route::middleware('auth:api')->group(function() {
+    Route::middleware(['auth:api', 'throttle:transactions'])->group(function() {
        Route::apiResource('/transactions', TransactionController::class);
        Route::get('/transactions/summary/{month}', [TransactionController::class, 'monthlySummary']);
     });
